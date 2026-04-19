@@ -1,0 +1,100 @@
+﻿@using IT_Destek_Panel.Models
+@model List<IT_Destek_Panel.Models.Ticket>
+@{
+    ViewData["Title"] = "Destek Taleplerim";
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark"><i class="fa-solid fa-ticket"></i> Destek Taleplerim</h2>
+        <a href="/Ticket/Create" class="btn btn-primary fw-bold shadow-sm"><i class="fa-solid fa-plus"></i> Yeni Talep Aç</a>
+    </div>
+
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">No</th>
+                        <th>Başlık</th>
+                        <th>Tarih</th>
+                        <th>Aciliyet</th>
+                        <th>Durum</th>
+                        <th class="text-end pe-4">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold text-muted">#@item.Id</td>
+                                <td class="fw-bold">@item.Title</td>
+                                <td class="text-muted">@item.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>
+                                    @if (item.Priority == TicketPriority.Düşük)
+                                    {
+                                        <span class="badge bg-info text-dark">Düşük</span>
+                                    }
+                                    else if (item.Priority == TicketPriority.Normal)
+                                    {
+
+                                        <span class="badge bg-primary">Normal</span>
+                                    }
+                                    else if (item.Priority == TicketPriority.Yüksek)
+                                    {
+
+                                        <span class="badge bg-warning text-dark">Yüksek</span>
+                                    }
+                                    else if (item.Priority == TicketPriority.Kritik)
+                                    {
+
+                                        <span class="badge bg-danger shadow-sm">KRİTİK</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.Status == TicketStatus.Açık)
+                                    {
+                                        <span class="badge bg-success">Açık</span>
+                                    }
+                                    else if (item.Status == TicketStatus.İşlemde)
+                                    {
+
+                                        <span class="badge bg-warning text-dark">İşlemde</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-secondary">Kapalı</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="/Ticket/Details/@item.Id" class="btn btn-sm btn-info text-white shadow-sm me-1">Detay</a>
+                                    @if (item.Status != TicketStatus.Kapalı)
+                                    {
+                                        <a href="/Ticket/CloseTicket/@item.Id" class="btn btn-sm btn-secondary shadow-sm">Kapat</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Henüz hiç destek talebi açmadınız.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@if (TempData["Success"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        Swal.fire({ title: 'Başarılı!', text: '@Html.Raw(TempData["Success"])', icon: 'success', confirmButtonColor: '#2c5364' });
+        });
+    </script>
+}

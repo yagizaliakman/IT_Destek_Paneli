@@ -1,0 +1,182 @@
+﻿@using IT_Destek_Panel.Models
+@model IT_Destek_Panel.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container-fluid mt-4 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div class="d-flex justify-content-end mb-3">
+            <a href="/Admin/ExportToExcel" class="btn btn-success shadow-sm fw-bold">
+                <i class="fa-solid fa-file-excel me-2"></i> Excel Raporu Al
+            </a>
+        </div>
+        <h2 class="text-dark fw-bold"><i class="fa-solid fa-chart-pie text-primary"></i> Yönetim Paneli</h2>
+        <div>
+            <a href="/Admin/Users" class="btn btn-info text-white fw-bold shadow-sm me-2"><i class="fa-solid fa-users"></i> Kullanıcıları Yönet</a>
+            <a href="/Account/Logout" class="btn btn-danger fw-bold shadow-sm"><i class="fa-solid fa-power-off"></i> Çıkış Yap</a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-primary border-5 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold">Toplam Talep</h6>
+                    <h3 class="fw-bold text-dark mb-0">@Model.TotalTickets</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-success border-5 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold">Açık Talepler</h6>
+                    <h3 class="fw-bold text-success mb-0">@Model.OpenTickets</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-warning border-5 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold">İşlemdeki Talepler</h6>
+                    <h3 class="fw-bold text-warning mb-0">@Model.InProgressTickets</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-secondary border-5 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold">Çözülen (Kapalı)</h6>
+                    <h3 class="fw-bold text-secondary mb-0">@Model.ClosedTickets</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-lg border-0 rounded-4 h-100">
+                <div class="card-header bg-white fw-bold py-3"><i class="fa-solid fa-chart-doughnut"></i> Talep Dağılımı</div>
+                <div class="card-body d-flex justify-content-center align-items-center">
+                    <canvas id="ticketChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-lg border-0 rounded-4 h-100">
+                <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center py-3">
+                    <span><i class="fa-solid fa-list"></i> Tüm Talepler</span>
+                    <input type="text" id="liveSearch" class="form-control form-control-sm w-25" placeholder="Ara...">
+                </div>
+                <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0" id="ticketTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="ps-3">No</th>
+                                <th>Kullanıcı</th>
+                                <th>Başlık</th>
+                                <th>Aciliyet</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Tickets != null)
+                            {
+                                foreach (var item in Model.Tickets)
+                                {
+                                    <tr>
+                                        <td class="ps-3 fw-bold text-muted">#@item.Id</td>
+                                        <td class="text-primary fw-bold">@item.User.Username</td>
+                                        <td class="fw-bold">@item.Title</td>
+                                        <td>
+                                            @if (item.Priority == TicketPriority.Düşük)
+                                            {
+                                                <span class="badge bg-info text-dark">Düşük</span>
+                                            }
+                                            else if (item.Priority == TicketPriority.Normal)
+                                            {
+
+                                                <span class="badge bg-primary">Normal</span>
+                                            }
+                                            else if (item.Priority == TicketPriority.Yüksek)
+                                            {
+
+                                                <span class="badge bg-warning text-dark">Yüksek</span>
+                                            }
+                                            else if (item.Priority == TicketPriority.Kritik)
+                                            {
+
+                                                <span class="badge bg-danger">KRİTİK</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (item.Status == TicketStatus.Açık)
+                                            {
+                                                <span class="badge bg-success">Açık</span>
+                                            }
+                                            else if (item.Status == TicketStatus.İşlemde)
+                                            {
+
+                                                <span class="badge bg-warning text-dark">İşlemde</span>
+                                            }
+                                            else
+                                            {
+
+                                                <span class="badge bg-secondary">Kapalı</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="/Ticket/Details/@item.Id" class="btn btn-sm btn-info text-white"><i class="fa-solid fa-reply"></i> Detay</a>
+                                            <button onclick="confirmDelete(@item.Id)" class="btn btn-sm btn-danger ms-1"><i class="fa-solid fa-trash"></i> Sil</button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById("liveSearch").addEventListener("keyup", function () {
+    var value = this.value.toLowerCase();
+    var rows = document.querySelectorAll("#ticketTable tbody tr");
+    rows.forEach(row => { row.style.display = row.textContent.toLowerCase().indexOf(value) > -1 ? "" : "none"; });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+    var ctx = document.getElementById('ticketChart').getContext('2d');
+    new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+    labels: ['Açık', 'İşlemde', 'Kapalı'],
+    datasets: [{
+    data: [@Model.OpenTickets, @Model.InProgressTickets, @Model.ClosedTickets],
+    backgroundColor: ['#198754', '#ffc107', '#6c757d']
+    }]
+    }
+    });
+    });
+
+    function confirmDelete(id) {
+    Swal.fire({
+    title: 'Emin misiniz?',
+    text: "Kayıt Silinecektir!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonText: 'İptal',
+    confirmButtonText: 'Evet, Sil!'
+    }).then((result) => {
+    if (result.isConfirmed) window.location.href = "/Admin/DeleteTicket/" + id;
+    });
+    }
+</script>

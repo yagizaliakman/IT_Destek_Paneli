@@ -1,0 +1,172 @@
+﻿@using IT_Destek_Panel.Models
+@using System.Security.Claims
+@model IT_Destek_Panel.Models.TicketDetailsViewModel
+@{
+    var currentUserId = int.Parse(User.FindFirstValue("UserId"));
+}
+@{
+    ViewData["Title"] = "Talep Detayı";
+    // O anki giriş yapan kişinin rolünü alıyoruz (Admin menülerini göstermek için)
+    var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+}
+
+<div class="container mt-4">
+    <div class="row">
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-header bg-dark text-white fw-bold py-3">
+                    <i class="fa-solid fa-circle-info"></i> Talep Bilgileri
+                </div>
+                <div class="card-body">
+                    <h5 class="fw-bold text-primary">@Model.Ticket.Title</h5>
+                    <p class="text-muted border-bottom pb-3">@Model.Ticket.Description</p>
+                    
+                    <p class="mb-2"><strong>Oluşturan:</strong> @Model.Ticket.User.Username</p>
+                    <p class="mb-2"><strong>Tarih:</strong> @Model.Ticket.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                    
+                    <p class="mb-2">
+                        <strong>Aciliyet:</strong>
+                        @if (Model.Ticket.Priority == TicketPriority.Düşük)
+                        {
+                            <span class="badge bg-info text-dark">Düşük</span>
+                        }
+                        else if (Model.Ticket.Priority == TicketPriority.Normal)
+                        {
+
+                            <span class="badge bg-primary">Normal</span>
+                        }
+                        else if (Model.Ticket.Priority == TicketPriority.Yüksek)
+                        {
+
+                            <span class="badge bg-warning text-dark">Yüksek</span>
+                        }
+                        else if (Model.Ticket.Priority == TicketPriority.Kritik)
+                        {
+
+                            <span class="badge bg-danger shadow-sm">KRİTİK</span>
+                        }
+                    </p>
+                    
+                    <p class="mb-2">
+                        <strong>Durum:</strong>
+                        @if (Model.Ticket.Status == TicketStatus.Açık)
+                        {
+                            <span class="badge bg-success">Açık</span>
+                        }
+                        else if (Model.Ticket.Status == TicketStatus.İşlemde)
+                        {
+
+                            <span class="badge bg-warning text-dark">İşlemde</span>
+                        }
+                        else
+                        {
+
+                            <span class="badge bg-secondary">Kapalı</span>
+                        }
+                    </p>
+
+                    @if (!string.IsNullOrEmpty(Model.Ticket.AttachmentPath))
+                    {
+                        <div class="mt-4">
+                            <strong><i class="fa-solid fa-paperclip"></i> Eklenen Dosya:</strong>
+                            <a href="@Model.Ticket.AttachmentPath" target="_blank" class="d-block mt-2">
+                                <img src="@Model.Ticket.AttachmentPath" class="img-fluid rounded border shadow-sm" alt="Ek" />
+                            </a>
+                            @if (Model.Ticket.AttachmentDate.HasValue)
+                            {
+                                <small class="text-muted d-block mt-1">Yüklenme: @Model.Ticket.AttachmentDate.Value.ToString("dd.MM.yyyy HH:mm")</small>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4 h-100">
+                <div class="card-header bg-primary text-white fw-bold py-3">
+                    <i class="fa-solid fa-comments"></i> Mesaj Geçmişi
+                </div>
+                
+                <div class="card-body" style="height: 450px; overflow-y: auto; background-color: #f8f9fa;">
+                    @if (Model.Messages != null && Model.Messages.Any())
+                    {
+                        foreach (var msg in Model.Messages)
+                        {
+                            // Mesajı yazan kişi Admin mi kontrolü
+                            bool isAdmin = msg.User.Role == UserRole.Admin;
+                            
+                            <div class="mb-3 @(isAdmin ? "text-end" : "text-start")">
+                                <div class="d-inline-block p-3 rounded-4 shadow-sm @(isAdmin ? "bg-white border-start border-primary border-4" : "bg-primary text-white")" style="max-width: 80%;">
+                                    <div class="fw-bold mb-1" style="font-size: 0.85rem; @(isAdmin ? "color: #0d6efd;" : "color: #e0e0e0;")">
+                                        <i class="fa-solid @(isAdmin ? "fa-user-shield" : "fa-user")"></i>
+                                        @(isAdmin ? "IT Destek (Admin)" : msg.User.Username)
+                                    </div>
+                                    <div style="font-size: 0.95rem;">@msg.MessageBody</div>
+                                    <div class="mt-2 text-end" style="font-size: 0.70rem; opacity: 0.7;">
+                                        @msg.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+
+                                        @if (msg.UserId == currentUserId)
+                                        {
+                                            <span class="ms-1">
+                                                @if (msg.IsRead)
+                                                {
+                                                    <i class="fa-solid fa-check-double text-info"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fa-solid fa-check text-secondary"></i>
+                                                }
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column justify-content-center align-items-center h-100 text-muted">
+                            <i class="fa-regular fa-comment-dots fa-3x mb-3 opacity-50"></i>
+                            <p>Henüz bir mesaj bulunmuyor. Talebiniz incelenmektedir.</p>
+                        </div>
+                    }
+                </div>
+
+                @if (Model.Ticket.Status != TicketStatus.Kapalı)
+                {
+                    <div class="card-footer bg-white py-3">
+                        <form action="/Ticket/AddMessage" method="post">
+                            <input type="hidden" name="ticketId" value="@Model.Ticket.Id" />
+                            
+                            @if (currentUserRole == "Admin" || currentUserRole == "2")
+                            {
+                                <div class="mb-2">
+                                    <label class="form-label text-muted small fw-bold">Durumu Güncelle (Opsiyonel)</label>
+                                    <select name="newStatus" class="form-select form-select-sm w-auto">
+                                        <option value="">Değiştirme</option>
+                                        <option value="@((int)TicketStatus.Açık)">Açık</option>
+                                        <option value="@((int)TicketStatus.İşlemde)">İşlemde</option>
+                                        <option value="@((int)TicketStatus.Kapalı)">Kapalı</option>
+                                    </select>
+                                </div>
+                            }
+
+                            <div class="input-group">
+                                <input type="text" name="newMessage" class="form-control" placeholder="Cevabınızı buraya yazın..." autocomplete="off" />
+                                <button type="submit" class="btn btn-primary fw-bold px-4"><i class="fa-solid fa-paper-plane"></i> Gönder</button>
+                            </div>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div class="card-footer bg-light text-center text-danger fw-bold py-3">
+                        <i class="fa-solid fa-lock"></i> Bu talep kapatıldığı için yeni mesaj gönderilemez.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,72 @@
+﻿@{
+    Layout = null; 
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kayıt Ol - IT Destek Paneli</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); 
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .register-card {
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); 
+            color: #333;
+        }
+        .form-control:focus {
+            border-color: #2c5364;
+            box-shadow: 0 0 0 0.25rem rgba(44, 83, 100, 0.25);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center" style="height: 100vh;">
+
+    <div class="card register-card p-4 p-md-5" style="width: 28rem;">
+        <div class="text-center mb-4">
+            <i class="fa-solid fa-user-plus fa-3x mb-3" style="color: #2c5364;"></i>
+            <h3 class="fw-bold mb-1" style="color: #0f2027;">Yeni Hesap Oluştur</h3>
+            <p class="text-muted small">Sisteme katılmak için bilgilerinizi giriniz</p>
+        </div>
+        
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger text-center fw-bold py-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> @ViewBag.Error
+            </div>
+        }
+
+        <form method="post" action="/Account/Register">
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary"><i class="fa-solid fa-user"></i> Kullanıcı Adı Belirleyin</label>
+                <input type="text" name="username" class="form-control form-control-lg bg-light" placeholder="Kullanıcı adınızı giriniz" required autocomplete="off" />
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label fw-bold text-secondary"><i class="fa-solid fa-lock"></i> Şifre Belirleyin</label>
+                <input type="password" name="password" class="form-control form-control-lg bg-light" placeholder="Şifrenizi giriniz" required />
+            </div>
+            
+            <button type="submit" class="btn btn-lg w-100 fw-bold text-white shadow-sm mb-3" style="background-color: #2c5364; border: none;">
+                Kayıt Ol <i class="fa-solid fa-check ms-1"></i>
+            </button>
+            
+            <div class="text-center mt-2 border-top pt-3">
+                <span class="text-muted small">Zaten hesabınız var mı?</span><br />
+                <a href="/Account/Login" class="text-decoration-none fw-bold" style="color: #203a43;">Giriş Yap</a>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

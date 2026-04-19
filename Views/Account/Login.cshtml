@@ -1,0 +1,79 @@
+﻿@{
+    Layout = null; // Bu sayfada hiçbir dış şablon kullanılmasın, tertemiz olsun
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sisteme Giriş - IT Destek Paneli</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); 
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.95); 
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); 
+            color: #333;
+        }
+        .form-control:focus {
+            border-color: #2c5364;
+            box-shadow: 0 0 0 0.25rem rgba(44, 83, 100, 0.25);
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center" style="height: 100vh;">
+
+    <div class="card login-card p-4 p-md-5" style="width: 28rem;">
+        <div class="text-center mb-4">
+            <i class="fa-solid fa-headset fa-3x mb-3" style="color: #2c5364;"></i>
+            <h3 class="fw-bold mb-1" style="color: #0f2027;">IT Destek Merkezi</h3>
+            <p class="text-muted small">Devam etmek için lütfen giriş yapınız</p>
+        </div>
+        
+        @if (ViewBag.Error != null)
+
+        {
+            <div class="alert alert-danger text-center fw-bold py-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> @ViewBag.Error
+            </div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success text-center fw-bold py-2">
+                <i class="fa-solid fa-check-circle"></i> @TempData["Success"]
+            </div>
+        }
+
+        <form method="post" action="/Account/Login">
+            <div class="mb-3">
+                <label class="form-label fw-bold text-secondary"><i class="fa-solid fa-user"></i> Kullanıcı Adı</label>
+                <input type="text" name="username" class="form-control form-control-lg bg-light" placeholder="Kullanıcı adınızı giriniz" required autocomplete="off" />
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label fw-bold text-secondary"><i class="fa-solid fa-lock"></i> Şifre</label>
+                <input type="password" name="password" class="form-control form-control-lg bg-light" placeholder="Şifrenizi giriniz" required />
+            </div>
+            
+            <button type="submit" class="btn btn-lg w-100 fw-bold text-white shadow-sm" style="background-color: #203a43; border: none;">
+                Giriş Yap <i class="fa-solid fa-right-to-bracket ms-1"></i>
+            </button>
+            <div class="text-center mt-4 border-top pt-3">
+                <span class="text-muted small">Hesabınız yok mu?</span><br />
+                <a href="/Account/Register" class="text-decoration-none fw-bold" style="color: #203a43;">Hemen Kayıt Ol</a>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>

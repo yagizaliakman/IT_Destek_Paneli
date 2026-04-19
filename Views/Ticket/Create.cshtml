@@ -1,0 +1,111 @@
+﻿@{
+    ViewData["Title"] = "Yeni Talep Oluştur";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0" style="border-radius: 15px;">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #0f2027, #2c5364); border-radius: 15px 15px 0 0;">
+                    <h4 class="mb-0 py-2"><i class="fa-solid fa-ticket-simple me-2"></i>Yeni IT Destek Talebi</h4>
+                </div>
+                
+                <div class="card-body p-4 bg-light" style="border-radius: 0 0 15px 15px;">
+                    
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger shadow-sm fw-bold mb-4">
+                            <i class="fa-solid fa-triangle-exclamation me-2"></i> @ViewBag.Error
+                        </div>
+                    }
+
+                    <form action="/Ticket/Create" method="post" enctype="multipart/form-data">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold text-secondary">Konu Başlığı</label>
+                                <input type="text" name="title" class="form-control form-control-lg border-primary" placeholder="Örn: Bilgisayarım açılmıyor" maxlength="100" required />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold text-secondary">Aciliyet</label>
+                                <select name="priority" class="form-select form-select-lg border-primary">
+                                    <option value="Düşük">🟢 Düşük</option>
+                                    <option value="Normal" selected>🟡 Normal</option>
+                                    <option value="Yüksek">🟠 Yüksek</option>
+                                    <option value="Kritik">🔴 KRİTİK!</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary">Sorun Detayı</label>
+                            <textarea name="description" id="GelismisEditor" class="form-control border-primary" rows="5" placeholder="Lütfen yaşadığınız sorunu detaylıca anlatın..."></textarea>
+                        </div>
+
+                        <div class="mb-4 p-3 bg-white border border-info rounded">
+                            <label class="form-label fw-bold text-info"><i class="fa-solid fa-paperclip me-2"></i>Ekran Görüntüsü veya Dosya Ekle (İsteğe Bağlı)</label>
+                            <input type="file" name="attachment" class="form-control" accept="image/*" />
+                            <small class="text-muted">Sorunun anlaşılmasını kolaylaştırmak için hata mesajının fotoğrafını yükleyebilirsiniz.</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/Ticket/Index" class="btn btn-outline-secondary fw-bold px-4">İptal</a>
+                            <button type="submit" class="btn btn-primary fw-bold px-5" style="background-color: #2c5364; border: none;">
+                                Talebi Gönder <i class="fa-solid fa-paper-plane ms-1"></i>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        ClassicEditor
+        .create(document.querySelector('#GelismisEditor'), {
+        toolbar: [ 'heading', '|', 'bold', 'italic', 'bulletedList', 'numberedList', 'blockQuote', '|', 'undo', 'redo' ]
+        })
+        .then(editor => {
+        // Dark Mode ile Editörü Senkronize Eden Efsane Fonksiyon
+        function updateEditorTheme() {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const editorArea = document.querySelector('.ck-editor__editable');
+        const toolbarArea = document.querySelector('.ck-toolbar');
+                        
+        if (editorArea) {
+        editorArea.style.backgroundColor = isDark ? '#2b3035' : '#ffffff';
+        editorArea.style.color = isDark ? '#f8f9fa' : '#212529';
+        }
+        if (toolbarArea) {
+        toolbarArea.style.backgroundColor = isDark ? '#212529' : '#f8f9fa';
+        }
+        }
+
+        // Sayfa ilk açıldığında temayı ayarla
+        updateEditorTheme();
+
+        // Kullanıcı Aydan güneşe (Dark mode tuşu) bastığında editörü de anında değiştir
+        const themeToggleBtn = document.getElementById('darkModeToggle');
+        if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+        setTimeout(updateEditorTheme, 50);
+        });
+        }
+        })
+        .catch(error => {
+        console.error(error);
+        });
+        });
+    </script>
+    <style>
+        /* Editörün yüksekliğini biraz artıralım ki heybetli dursun */
+        .ck-editor__editable_inline {
+        min-height: 200px !important;
+        }
+    </style>
+}
