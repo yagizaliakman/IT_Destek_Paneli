@@ -7,17 +7,21 @@ using System.IO;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
-
+using Microsoft.AspNetCore.SignalR; // SignalR için gerekli
+using IT_Destek_Panel.Hubs; // Hub dosyanın yolu
 
 namespace IT_Destek_Panel.Controllers
 {
     public class TicketController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IHubContext<TicketHub> _hubContext; // Telsiz merkezi
 
-        public TicketController(AppDbContext context)
+        // Constructor'a hem veritabanını hem de SignalR telsizini bağladık
+        public TicketController(AppDbContext context, IHubContext<TicketHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // 1. Kullanıcının Kendi Biletlerini Listelediği Ana Sayfa
@@ -25,7 +29,6 @@ namespace IT_Destek_Panel.Controllers
         {
             var userId = int.Parse(User.FindFirstValue("UserId"));
 
-            // .Include kullanarak durum ve aciliyet isimlerini (Lookup) çekiyoruz
             var tickets = _context.Tickets
                 .Include(t => t.Status)
                 .Include(t => t.Priority)
@@ -36,22 +39,19 @@ namespace IT_Destek_Panel.Controllers
             return View(tickets);
         }
 
-        // 2. Yeni Bilet Ekranını Getiren Metod (GET)
+        // 2. Yeni Bilet Ekranı (GET)
         [HttpGet]
         public IActionResult Create()
         {
-            // Dropdown listelerini veritabanından çekip sayfaya gönderiyoruz
             ViewBag.StatusList = new SelectList(_context.TicketStatuses.ToList(), "Id", "Name");
             ViewBag.PriorityList = new SelectList(_context.TicketPriorities.ToList(), "Id", "Name");
-
             return View();
         }
 
-        // 3. Yeni Bilet Kaydetme Metodu (POST)
+        // 3. Yeni Bilet Kaydetme (POST) - ImageSharp Presli
         [HttpPost]
         public async Task<IActionResult> Create(string title, string description, int priorityId, IFormFile? attachment)
         {
-            // 1. Boş Alan Kontrolü
             if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(description))
             {
                 ViewBag.Error = "Başlık ve mesaj alanları boş bırakılamaz!";
@@ -64,7 +64,6 @@ namespace IT_Destek_Panel.Controllers
             string? filePath = null;
             DateTime? attachmentDate = null;
 
-            // 2. Dosya Yükleme ve Presleme İşlemi
             if (attachment != null && attachment.Length > 0)
             {
                 var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
@@ -78,52 +77,33 @@ namespace IT_Destek_Panel.Controllers
                     var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(attachment.FileName);
                     var exactPath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                    // IMAGESHARP PRES MAKİNESİ BURADA DEVREYE GİRİYOR 
                     if (extension == ".jpg" || extension == ".jpeg" || extension == ".png")
                     {
-                        // Resmi belleğe alıp işliyoruz
                         using (var image = await Image.LoadAsync(attachment.OpenReadStream()))
                         {
-                            // Genişliği maksimum 1280px olacak şekilde orantılı küçült
-                            image.Mutate(x => x.Resize(new ResizeOptions
-                            {
-                                Mode = ResizeMode.Max,
-                                Size = new Size(1280, 720)
-                            }));
-
-                            // Kaliteyi %75'e çekip kaydediyoruz (Boyut devasa düşer, kalite fark edilmez)
+                            image.Mutate(x => x.Resize(new ResizeOptions { Mode = ResizeMode.Max, Size = new Size(1280, 720) }));
                             var encoder = new JpegEncoder { Quality = 75 };
                             await image.SaveAsync(exactPath, encoder);
                         }
                     }
                     else if (extension == ".pdf")
                     {
-                        // PDF dosyaları resim olmadığı için eski yöntemle (olduğu gibi) kaydedilir
                         using (var stream = new FileStream(exactPath, FileMode.Create))
                         {
                             await attachment.CopyToAsync(stream);
                         }
                     }
-
                     filePath = "/uploads/" + uniqueFileName;
                     attachmentDate = DateTime.Now;
                 }
-                else
-                {
-                    ViewBag.Error = "Sadece .jpg, .png veya .pdf uzantılı dosyalar yükleyebilirsiniz.";
-                    ViewBag.StatusList = new SelectList(_context.TicketStatuses.ToList(), "Id", "Name");
-                    ViewBag.PriorityList = new SelectList(_context.TicketPriorities.ToList(), "Id", "Name");
-                    return View();
-                }
             }
 
-            // 3. Veritabanı Kayıt İşlemi
             var ticket = new Ticket
             {
                 Title = title,
                 Description = description,
                 PriorityId = priorityId,
-                StatusId = 1, // Yeni açılan bilet her zaman "Açık" (1) durumdadır
+                StatusId = 1,
                 UserId = userId,
                 CreatedAt = DateTime.Now,
                 AttachmentPath = filePath,
@@ -137,7 +117,7 @@ namespace IT_Destek_Panel.Controllers
             return RedirectToAction("Index");
         }
 
-        // 4. Bilet Detayını ve Mesaj Geçmişini Getiren Metod (GET)
+        // 4. Bilet Detayı (Mavi Tik/Okundu Bilgisi Dahil)
         public IActionResult Details(int id)
         {
             var userId = int.Parse(User.FindFirstValue("UserId"));
@@ -151,7 +131,6 @@ namespace IT_Destek_Panel.Controllers
 
             if (ticket == null) return NotFound("Talep bulunamadı.");
 
-            // Güvenlik: Admin değilse ve bilet başkasına aitse engelle
             if (role != "Admin" && role != "2" && ticket.UserId != userId)
                 return Unauthorized("Bu işleme yetkiniz yok.");
 
@@ -161,16 +140,11 @@ namespace IT_Destek_Panel.Controllers
                 .OrderBy(m => m.CreatedAt)
                 .ToList();
 
-            var viewModel = new TicketDetailsViewModel
-            {
-                Ticket = ticket,
-                Messages = messages
-            };
-            // OKUNDU BİLGİSİ MOTORU 
+            var viewModel = new TicketDetailsViewModel { Ticket = ticket, Messages = messages };
+
             bool isUpdated = false;
             foreach (var msg in messages)
             {
-                // Eğer mesajı başkası yazdıysa ve ben şu an sayfaya girdiysem okundu yap!
                 if (msg.UserId != userId && !msg.IsRead)
                 {
                     msg.IsRead = true;
@@ -178,22 +152,20 @@ namespace IT_Destek_Panel.Controllers
                 }
             }
 
-            // Eğer okunmamış mesaj yakalayıp true yaptıysak veritabanına kaydet
-            if (isUpdated)
-            {
-                _context.SaveChanges();
-            }
+            if (isUpdated) _context.SaveChanges();
+
             return View(viewModel);
         }
 
-        // 5. Yeni Mesaj Gönderme ve Durum Güncelleme Metodu (POST)
+        // 5. Yeni Mesaj Gönderme (ANLIK SİNYAL DESTEKLİ)
         [HttpPost]
-        public IActionResult AddMessage(int ticketId, string newMessage, int? newStatusId)
+        public async Task<IActionResult> AddMessage(int ticketId, string newMessage, int? newStatusId)
         {
             var userId = int.Parse(User.FindFirstValue("UserId"));
             var role = User.FindFirstValue(ClaimTypes.Role);
+            var userName = User.Identity.Name;
 
-            var ticket = _context.Tickets.FirstOrDefault(t => t.Id == ticketId);
+            var ticket = await _context.Tickets.FirstOrDefaultAsync(t => t.Id == ticketId);
             if (ticket == null) return NotFound();
 
             if (!string.IsNullOrWhiteSpace(newMessage))
@@ -204,31 +176,35 @@ namespace IT_Destek_Panel.Controllers
                     UserId = userId,
                     MessageBody = newMessage,
                     CreatedAt = DateTime.Now,
-                    IsDeleted = false
+                    IsDeleted = false,
+                    IsRead = false
                 };
                 _context.TicketMessages.Add(message);
             }
 
-            // Admin Otonomasyonu ve Durum Değiştirme
             if (role == "Admin" || role == "2")
             {
-                if (newStatusId.HasValue)
-                {
-                    ticket.StatusId = newStatusId.Value;
-                }
-                else if (ticket.StatusId == 1 && !string.IsNullOrWhiteSpace(newMessage))
-                {
-                    // Admin cevap yazdıysa durum "İşlemde" (2) olur
-                    ticket.StatusId = 2;
-                }
+                if (newStatusId.HasValue) ticket.StatusId = newStatusId.Value;
+                else if (ticket.StatusId == 1 && !string.IsNullOrWhiteSpace(newMessage)) ticket.StatusId = 2;
             }
 
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
+            // SİNYALİ ÇAKIYORUZ: Sayfa yenilenmeden karşıya gitsin
+            if (!string.IsNullOrWhiteSpace(newMessage))
+            {
+                await _hubContext.Clients.Group(ticketId.ToString()).SendAsync("ReceiveMessage",
+                    userName,
+                    newMessage,
+                    DateTime.Now.ToString("dd.MM.yyyy HH:mm")
+                );
+            }
+
             TempData["SuccessMessage"] = "İşleminiz başarıyla tamamlandı.";
             return RedirectToAction("Details", new { id = ticketId });
         }
 
-        // 6. Kullanıcının Kendi Biletini Kapatması
+        // 6. Bilet Kapatma
         public IActionResult CloseTicket(int id)
         {
             var userId = int.Parse(User.FindFirstValue("UserId"));
@@ -236,13 +212,11 @@ namespace IT_Destek_Panel.Controllers
 
             if (ticket != null)
             {
-                ticket.StatusId = 3; // "Kapalı" durumu
+                ticket.StatusId = 3;
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = "Bilet başarıyla kapatıldı.";
             }
-
             return RedirectToAction("Index");
         }
     }
 }
-

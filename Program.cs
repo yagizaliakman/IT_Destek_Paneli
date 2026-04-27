@@ -1,8 +1,10 @@
+using IT_Destek_Panel.Hubs;
 using IT_Destek_Panel.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSignalR();
 
 // 1. Controller ve View desteğini ekliyoruz
 builder.Services.AddControllersWithViews();
@@ -44,6 +46,7 @@ app.UseAuthorization();
 // Statik dosyaları (CSS, JS, Resimler) haritalar
 app.MapStaticAssets();
 
+app.MapHub<TicketHub>("/ticketHub");
 // Varsayılan Başlangıç Sayfası: Account/Login
 app.MapControllerRoute(
     name: "default",

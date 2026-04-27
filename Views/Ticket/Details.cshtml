@@ -170,3 +170,24 @@
         </div>
     </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+
+<script>
+    const connection = new hubConnectionBuilder()
+    .withUrl("/ticketHub")
+    .build();
+
+    const ticketId = "@Model.Ticket.Id";
+
+    connection.on("ReceiveMessage", function (user, message, date) {
+    // Burada gelen mesajı HTML'e ekleme kodu olacak
+    const messageHtml = `<div class="message"><strong>${user}:</strong> ${message} <small>${date}</small></div>`;
+    document.getElementById("messageArea").innerHTML += messageHtml;
+        
+    // Eğer mesaj gelmişse mavi tiki de JS ile hemen güncelleyebiliriz!
+    });
+
+    connection.start().then(function () {
+    connection.invoke("JoinTicketGroup", parseInt(ticketId));
+    }).catch(err => console.error(err.toString()));
+</script>
